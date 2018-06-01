@@ -77,43 +77,40 @@ different costs to members (the listed costs are per half-hour 'slot'), and
 the guest user's ID is always 0. Include in your output the name of the
 facility, the name of the member formatted as a single column, and the cost.
 Order by descending cost, and do not use any subqueries. */
-SELECT DISTINCT concat(firstname, ' ', surname) AS member_name, name, membercost, guestcost FROM Bookings
+SELECT DISTINCT firstname, CASE WHEN firstname = 'GUEST' THEN guestcost ELSE membercost END AS cost,
+name, concat(firstname, ' ', surname) AS member_name FROM Bookings
 JOIN Members
 ON Bookings.memid = Members.memid
 JOIN Facilities
 ON Bookings.facid = Facilities.facid
 WHERE starttime LIKE "2012-09-14%"
-CASE WHEN member_name = "GUEST GUEST" THEN guestcost
-ELSE membercost END AS cost
 ORDER BY cost DESC 
 
 /* Q9: This time, produce the same result as in Q8, but using a subquery. */
-SELECT concat(firstname, ' ', surname) AS member_name, name, membercost, guestcost FROM (
-    SELECT * 
-    FROM Bookings
-    WHERE starttime LIKE "2012-09-14%"
-    ) AS test
-    JOIN Members
-	ON test.memid = Members.memid
+SELECT firstname, CASE WHEN firstname = 'GUEST' THEN guestcost ELSE membercost END AS cost,
+name, concat(firstname, ' ', surname) AS member_name FROM (
+SELECT *
+FROM Bookings
+WHERE starttime LIKE "2012-09-14%"
+) AS test
+JOIN Members
+ON test.memid = Members.memid
 JOIN Facilities
 ON test.facid = Facilities.facid
-CASE WHEN member_name = "GUEST GUEST" THEN guestcost
-ELSE membercost END AS cost
-ORDER BY cost DESC 
+ORDER BY cost DESC
 
 /* Q10: Produce a list of facilities with a total revenue less than 1000.
 The output of facility name and total revenue, sorted by revenue. Remember
 that there's a different cost for guests and members! */
-SELECT concat(firstname, ' ', surname) AS member_name, name, membercost, guestcost FROM (
-    SELECT * 
-    FROM Bookings
-    WHERE starttime LIKE "2012-09-14%"
-    ) AS test
-    JOIN Members
-	ON test.memid = Members.memid
+SELECT *
+FROM (
+SELECT name, SUM(CASE WHEN firstname = 'GUEST' THEN guestcost ELSE membercost END) AS cost
+FROM Bookings     
+JOIN Members
+ON Bookings.memid = Members.memid
 JOIN Facilities
-ON test.facid = Facilities.facid
-CASE WHEN member_name = "GUEST GUEST" THEN guestcost
-ELSE membercost END AS total_revenue
-ORDER BY total_revenue DESC 
-GROUP BY total_revenue
+ON Bookings.facid = Facilities.facid
+Group By name
+ORDER BY cost DESC
+) AS test
+Where cost < 1000
